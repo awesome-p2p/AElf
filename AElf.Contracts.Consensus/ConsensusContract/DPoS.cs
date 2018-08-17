@@ -27,7 +27,7 @@ namespace AElf.Contracts.Consensus.ConsensusContract
             }
         }
 
-        public bool PrintLogs => true;
+        public bool PrintLogs => false;
 
         public Hash Nonce { get; set; } = Hash.Default;
 
