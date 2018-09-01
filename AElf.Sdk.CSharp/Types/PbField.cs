@@ -41,14 +41,6 @@ namespace AElf.Sdk.CSharp.Types
             var bytes = await Api.GetDataProvider("").GetAsync<T>(_name.CalculateHash());
             return bytes == null ? default(T) : Api.Serializer.Deserialize<T>(bytes);
         }
-
-        public async Task SetDataAsync(T value)
-        {
-            if (value != null)
-            {
-                await Api.GetDataProvider("").SetDataAsync(_name.CalculateHash(), value);
-            }
-        }
     }
 
     public class BoolField
@@ -168,12 +160,12 @@ namespace AElf.Sdk.CSharp.Types
         
         public async Task SetAsync(ulong value)
         {
-            await _inner.SetDataAsync(new UInt64Value { Value = value });
+            await _inner.SetAsync(new UInt64Value { Value = value });
         }
         
         public async Task<ulong> GetAsync()
         {
-            return (await _inner.GetAsync())?.Value ?? 0;
+            return (await _inner.GetAsync())?.Value ?? default(ulong);
         }
     }
 

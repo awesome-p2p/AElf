@@ -76,11 +76,6 @@ namespace AElf.Sdk.CSharp.Types
             var bytes = await DataProvider.GetAsync<TValue>(key.CalculateHash());
             return bytes == null ? default(TValue) : Api.Serializer.Deserialize<TValue>(bytes);
         }
-
-        public async Task SetValueToDatabaseAsync(TKey key, TValue value)
-        {
-            await DataProvider.SetDataAsync(key.CalculateHash(), value);
-        }
     }
 
     public class MapToBool<TKey> : Map<TKey, BoolValue> where TKey : IMessage
