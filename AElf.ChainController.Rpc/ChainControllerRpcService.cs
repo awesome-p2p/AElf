@@ -35,7 +35,6 @@ namespace AElf.ChainController.Rpc
 
         #endregion Properties
 
-
         #region Methods
 
         [JsonRpcMethod("get_commands")]

@@ -43,6 +43,9 @@ namespace AElf.Contracts.Token.Tests
         public MockSetup(IStateDictator stateDictator, IChainCreationService chainCreationService, IDataStore dataStore, IChainContextService chainContextService, IFunctionMetadataService functionMetadataService, ISmartContractRunnerFactory smartContractRunnerFactory)
         {
             _stateDictator = stateDictator;
+            _stateDictator.ChainId = ChainId1;
+            _stateDictator.BlockProducerAccountAddress = Hash.Generate();
+            
             _chainCreationService = chainCreationService;
             ChainContextService = chainContextService;
             _functionMetadataService = functionMetadataService;

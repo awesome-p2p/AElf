@@ -183,6 +183,7 @@ namespace AElf.Kernel.Consensus
 
                 _logger?.Trace($"Will help to produce extra block after {after} seconds");
             }
+            
 
             return Observable.Return(ConsensusBehavior.DoNothing)
                 .Concat(produceNormalBlock)

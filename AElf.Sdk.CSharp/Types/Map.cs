@@ -432,10 +432,5 @@ namespace AElf.Sdk.CSharp.Types
             obj.Unpack(userTypeHolder);
             return obj;
         }
-
-        public IDataProvider GetSubDataProvider(string dataProviderKey)
-        {
-            return Api.GetDataProvider(Name).GetDataProvider(dataProviderKey);
-        }
     }
 }

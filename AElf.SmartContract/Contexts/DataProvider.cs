@@ -38,7 +38,7 @@ namespace AElf.SmartContract
 
         public void ClearCache()
         {
-            StateCache = new Dictionary<DataPath, StateCache>();
+            StateCache.Clear();
         }
 
         /// <summary>

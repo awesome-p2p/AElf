@@ -197,7 +197,8 @@ namespace AElf.Runtime.CSharp
                     }
                 }
 
-                if (!methodAbi.IsView && _currentTransactionContext.Trace.ExecutionStatus == ExecutionStatus.ExecutedButNotCommitted)
+                if (!methodAbi.IsView && _currentTransactionContext.Trace.ExecutionStatus ==
+                    ExecutionStatus.ExecutedButNotCommitted)
                 {
                     var changes = _currentSmartContractContext.DataProvider.GetValueChanges();
                     var stateValueChanges = changes as StateValueChange[] ?? changes.ToArray();
@@ -206,12 +207,13 @@ namespace AElf.Runtime.CSharp
                         Debug.WriteLine(change.Path.ResourcePointerHash);
                         Debug.WriteLine(change.CurrentValue.Length);
                     }
+
                     _currentTransactionContext.Trace.ValueChanges.AddRange(stateValueChanges);
                     if (autoCommit)
                     {
                         var changeDict = await _currentTransactionContext.Trace.CommitChangesAsync(_stateDictator);
                         await _stateDictator.ApplyCachedDataAction(changeDict);
-                        _currentSmartContractContext.DataProvider.StateCache.Clear(); //clear state cache for special tx that called with "autoCommit = true"
+                        _currentSmartContractContext.DataProvider.ClearCache();
                     }
                 }
             }
@@ -219,6 +221,10 @@ namespace AElf.Runtime.CSharp
             {
                 _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.SystemError;
                 _currentTransactionContext.Trace.StdErr += ex + "\n";
+            }
+            finally
+            {
+                _currentSmartContractContext.DataProvider.ClearCache();
             }
             
             var e = _currentTransactionContext.Trace.EndTime = DateTime.UtcNow;

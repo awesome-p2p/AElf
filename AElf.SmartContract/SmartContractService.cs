@@ -67,7 +67,7 @@ namespace AElf.SmartContract
 
             executive.SetStateDictator(_stateDictator);
             
-            executive.SetSmartContractContext(new SmartContractContext()
+            executive.SetSmartContractContext(new SmartContractContext
             {
                 ChainId = chainId,
                 ContractAddress = contractAddress,
