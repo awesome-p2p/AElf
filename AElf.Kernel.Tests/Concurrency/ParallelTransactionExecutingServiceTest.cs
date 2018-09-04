@@ -22,6 +22,7 @@ namespace AElf.Kernel.Tests.Concurrency
         public ParallelTransactionExecutingServiceTest(MockSetup mock) : base(new XunitAssertions())
         {
             _mock = mock;
+            _mock.StateDictator.ChainId = _mock.ChainId1;
         }
 
         [Fact]
