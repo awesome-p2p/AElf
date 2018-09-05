@@ -5,18 +5,18 @@ namespace AElf.Miner.Miner
 {
     public class BlockExecutionResult
     {
-        public ValidationResult ValidationResult { get; }
+        public SyncSuggestion SyncSuggestion { get; }
         public ExecutionResult ExecutionResult { get; }
 
         public bool IsSuccess =>
-            ValidationResult == ValidationResult.Success && ExecutionResult == ExecutionResult.Success;
+            SyncSuggestion != SyncSuggestion.Abandon && ExecutionResult == ExecutionResult.Success;
 
         public Exception ExecutionException { get; set; }
 
-        public BlockExecutionResult(ExecutionResult executionResult, ValidationResult validationResult)
+        public BlockExecutionResult(ExecutionResult executionResult, SyncSuggestion syncSuggestion)
         {
             ExecutionResult = executionResult;
-            ValidationResult = validationResult;
+            SyncSuggestion = syncSuggestion;
         }
 
         public BlockExecutionResult(Exception e)

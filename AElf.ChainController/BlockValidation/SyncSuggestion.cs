@@ -6,6 +6,7 @@ namespace AElf.ChainController
         Apply,
         Abandon,
         Store,
-        Checkout
+        Checkout,
+        RequestMissingBlocks
     }
 }

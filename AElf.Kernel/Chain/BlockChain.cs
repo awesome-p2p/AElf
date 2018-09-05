@@ -12,8 +12,6 @@ namespace AElf.Kernel
     {
         private readonly ITransactionManager _transactionManager;
 
-        private readonly List<BranchedChain> _backupChains = new List<BranchedChain>();
-        
         public BlockChain(Hash chainId, IChainManagerBasic chainManager, IBlockManagerBasic blockManager,
             ITransactionManager transactionManager, IDataStore dataStore) : base(
             chainId, chainManager, blockManager, dataStore)
@@ -57,9 +55,9 @@ namespace AElf.Kernel
             }
         }
 
-        public async Task<IBlock> GetBlockByHashAsync(Hash blockId)
+        public async Task<IBlock> GetBlockByHashAsync(Hash blockHash)
         {
-            return await _blockManager.GetBlockAsync(blockId);
+            return await _blockManager.GetBlockAsync(blockHash);
         }
 
         public async Task<IBlock> GetBlockByHeightAsync(ulong height)

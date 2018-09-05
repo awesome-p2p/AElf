@@ -12,7 +12,6 @@ namespace AElf.ChainController
         List<PendingBlock> PendingBlocks { get; set; }
         List<PendingBlock> PendingForkBlocks { get; set; }
 
-        void AddBlock(IBlock block);
         void AddPendingBlock(PendingBlock pendingBlock);
         void RemovePendingBlock(PendingBlock pendingBlock);
 

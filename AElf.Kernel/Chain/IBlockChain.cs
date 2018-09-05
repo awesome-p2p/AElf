@@ -9,7 +9,7 @@ namespace AElf.Kernel
         IBlock CurrentBlock { get; }
         Task<bool> HasBlock(Hash blockId);
         Task AddBlocksAsync(IEnumerable<IBlock> blocks);
-        Task<IBlock> GetBlockByHashAsync(Hash blockId);
+        Task<IBlock> GetBlockByHashAsync(Hash blockHash);
         Task<IBlock> GetBlockByHeightAsync(ulong height);
         Task<List<Transaction>> RollbackToHeight(ulong height);
     }

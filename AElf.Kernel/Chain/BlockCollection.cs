@@ -1,26 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using AElf.Cryptography.ECDSA;
 
 // ReSharper disable once CheckNamespace
 namespace AElf.Kernel
 {
     public class BlockCollection : IBlockCollection
     {
-        private readonly Dictionary<DataPath, IBlock> _blocks = new Dictionary<DataPath, IBlock>();
-        private readonly BranchedChain _branchedChain;
+        private readonly List<BranchedChain> _branchedChains= new List<BranchedChain>();
+        private ulong _localLatestBlockHeight;
 
         public List<PendingBlock> PendingBlocks { get; set; } = new List<PendingBlock>();
         /// <summary>
         /// Should with same height
         /// </summary>
         public List<PendingBlock> PendingForkBlocks { get; set; }
-
-        public BlockCollection()
-        {
-            _branchedChain = new BranchedChain();
-        }
 
         public void AddPendingBlock(PendingBlock pendingBlock)
         {
@@ -43,50 +37,100 @@ namespace AElf.Kernel
             }
             
             PendingBlocks.AddPendingBlock(pendingBlock);
+            _localLatestBlockHeight = Math.Max(_localLatestBlockHeight, pendingBlock.Block.Header.Index);
         }
 
         public void RemovePendingBlock(PendingBlock pendingBlock)
         {
             PendingBlocks.Remove(pendingBlock);
+            AddBlockToBranchedChains(pendingBlock);
         }
 
-        public void AddBlock(IBlock block)
+        public void AddBlockToBranchedChains(PendingBlock pendingBlock)
         {
-            var uncompressedPrivKey = block.Header.P.ToByteArray();
-            var recipientKeyPair = ECKeyPair.FromPublicKey(uncompressedPrivKey);
-            
-            _blocks.Add(new DataPath
+            var preBlockHash = pendingBlock.Block.Header.PreviousBlockHash;
+            var blockHash = pendingBlock.BlockHash;
+            var toRemove = new List<BranchedChain>();
+            var toAdd = new List<BranchedChain>();
+            foreach (var branchedChain in _branchedChains)
             {
-                ChainId = block.Header.ChainId,
-                BlockHeight = block.Header.Index,
-                BlockProducerAddress = recipientKeyPair.GetAddress()
-            }, block);
-        }
-
-        public IBlock GetBlockOfBlockProducer(Hash address)
-        {
-            if (address.ToHex().Length != ECKeyPair.AddressLength)
-            {
-                throw new InvalidOperationException("Invalid block producer account address.");
+                if (branchedChain.PendingBlocks.First().Block.Header.PreviousBlockHash == blockHash)
+                {
+                    var newBranchedChain = new BranchedChain(pendingBlock, branchedChain.PendingBlocks);
+                    toAdd.Add(newBranchedChain);
+                    toRemove.Add(branchedChain);
+                }
+                else if (branchedChain.PendingBlocks.Last().BlockHash == preBlockHash)
+                {
+                    var newBranchedChain = new BranchedChain(branchedChain.PendingBlocks, pendingBlock);
+                    toAdd.Add(newBranchedChain);
+                    toRemove.Add(branchedChain);
+                }
+                else
+                {
+                    toAdd.Add(new BranchedChain(pendingBlock));
+                }
             }
 
-            return (from pair in _blocks
-                where pair.Key.BlockProducerAddress == address
-                select pair.Value).First();
+            foreach (var branchedChain in toRemove)
+            {
+                _branchedChains.Remove(branchedChain);
+            }
+
+            foreach (var branchedChain in toAdd)
+            {
+                _branchedChains.Add(branchedChain);
+            }
+
+            var result = AdjustBranchedChains();
+            if (result != null)
+            {
+                PendingBlocks = result.PendingBlocks;
+            }
         }
 
-        public IBlock GetBlockOfHeight(ulong height)
+        public BranchedChain AdjustBranchedChains()
         {
-            return (from pair in _blocks
-                where pair.Key.BlockHeight == height
-                select pair.Value).First();
-        }
+            var preBlockHashes = new List<Hash>();
+            var lastBlockHashes = new List<Hash>();
 
-        public IEnumerable<IBlock> GetBlockOfChain(Hash chainId)
-        {
-            return from pair in _blocks
-                where pair.Key.ChainId == chainId
-                select pair.Value;
+            foreach (var branchedChain in _branchedChains)
+            {
+                preBlockHashes.Add(branchedChain.PreBlockHash);
+                lastBlockHashes.Add(branchedChain.LastBlockHash);
+            }
+
+            var pair = new List<Hash>();
+
+            foreach (var preBlockHash in preBlockHashes)
+            {
+                foreach (var lastBlockHash in lastBlockHashes)
+                {
+                    if (preBlockHash == lastBlockHash)
+                    {
+                        pair.Add(preBlockHash);
+                    }
+                }
+            }
+
+            foreach (var hash in pair)
+            {
+                var chain1 = _branchedChains.First(c => c.PreBlockHash == hash);
+                var chain2 = _branchedChains.First(c => c.LastBlockHash == hash);
+                _branchedChains.Remove(chain1);
+                _branchedChains.Remove(chain2);
+                _branchedChains.Add(new BranchedChain(chain1.PendingBlocks, chain2.PendingBlocks));
+            }
+
+            foreach (var branchedChain in _branchedChains)
+            {
+                if (branchedChain.CanCheckout(_localLatestBlockHeight))
+                {
+                    return branchedChain;
+                }
+            }
+
+            return null;
         }
     }
 }

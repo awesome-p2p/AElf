@@ -20,7 +20,6 @@ namespace AElf.SmartContract
         private readonly IDataStore _dataStore;
         private readonly ILogger _logger;
         private readonly IHashManager _hashManager;
-        private readonly ITransactionManager _transactionManager;
 
         private WorldState _worldState = new WorldState();
 
@@ -28,29 +27,12 @@ namespace AElf.SmartContract
         public Hash BlockProducerAccountAddress { get; set; } = Hash.Zero;
         public ulong BlockHeight { get; set; }
 
-        public StateDictator(IHashManager hashManager, ITransactionManager transactionManager, IDataStore dataStore, ILogger logger = null)
+        public StateDictator(IHashManager hashManager, IDataStore dataStore, ILogger logger = null)
         {
             _dataStore = dataStore;
             _logger = logger;
 
             _hashManager = hashManager;
-            _transactionManager = transactionManager;
-        }
-
-        public async Task<ulong> GetChainCurrentHeightAsync(Hash chainId)
-        {
-            var key = chainId.OfType(HashType.ChainHeight);
-            var height = await _dataStore.GetAsync<UInt64Value>(key);
-            return height.Value;
-        }
-
-        public async Task SetChainCurrentHeightAsync(Hash chainId, ulong height)
-        {
-            var key = chainId.OfType(HashType.ChainHeight);
-            await _dataStore.InsertAsync(key, new UInt64Value
-            {
-                Value = height
-            });
         }
         
         /// <summary>

@@ -440,7 +440,7 @@ namespace AElf.Node.Protocol
                 var block = pendingBlock.Block;
 
                 var res = await _mainChainNode.ExecuteAndAddBlock(block);
-                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.ExecutionResult}, {res.ValidationResult} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
+                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.ExecutionResult}, {res.SyncSuggestion} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
 
                 if (res.IsSuccess)
                 {
@@ -457,13 +457,8 @@ namespace AElf.Node.Protocol
                 else
                 {
                     // Somehow failed
-                    
-                    if (res.ValidationResult == ValidationResult.AlreadyExecuted
-                        /* || res.ValidationResult == ValidationResult.OrphanBlock */)
+                    if (res.SyncSuggestion == SyncSuggestion.Abandon)
                     {
-                        // The block is an earlier block and one with the same
-                        // height as already been executed so it can be safely
-                        // remove from the pending blocks list.
                         toRemove.Add(pendingBlock);
 
                         if (IsInitialSyncInProgress && (int) pendingBlock.Block.Header.Index == CurrentExecHeight)
@@ -471,7 +466,7 @@ namespace AElf.Node.Protocol
                             Interlocked.Increment(ref CurrentExecHeight);
                         }
                     }
-                    else if (res.ValidationResult == ValidationResult.HeigherHeight)
+                    else if (res.SyncSuggestion == SyncSuggestion.RequestMissingBlocks)
                     {
                         // Current block's index is higher than local current height,
                         // which means we may missing some blocks

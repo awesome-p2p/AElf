@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using AElf.ChainController;
 using AElf.Common.Attributes;
 using AElf.Cryptography.ECDSA;
 using AElf.Kernel;
@@ -39,14 +38,19 @@ namespace AElf.ChainController
     
                 var currentChainHeight = context.BlockHeight;
                 var currentPreviousBlockHash = context.BlockHash;
-    
+
+                if (index < currentChainHeight - (ulong) Globals.BlockNumberOfEachRound)
+                {
+                    return ValidationResult.OutOfDate;
+                }
+
                 // other block needed before this one
                 if (index > currentChainHeight + 1)
                 {
                     _logger?.Trace("Received block index:" + index);
                     _logger?.Trace("Current chain height:" + currentChainHeight);
                     
-                    return ValidationResult.Pending;
+                    return ValidationResult.HigherHeight;
                 }
                 
                 // can be added to chain
@@ -58,29 +62,25 @@ namespace AElf.ChainController
                     _logger?.Trace("context.BlockHash:" + currentPreviousBlockHash.ToHex());
                     _logger?.Trace("block.Header.PreviousBlockHash:" + previousBlockHash.ToHex());
 
-                    return ValidationResult.IncorrectPreBlockHash;
+                    return ValidationResult.IncorrectPreviousBlockHash;
                 }
                 
                 if (index <= currentChainHeight)
                 {
                     var blockchain = _chainService.GetBlockChain(block.Header.ChainId);
                     var b = await blockchain.GetBlockByHeightAsync(index);
-                    if (b == null)
-                    {
-                        return ValidationResult.FailedToGetBlockByHeight;
-                    }
                     return b.Header.GetHash().Equals(block.Header.GetHash())
                         ? ValidationResult.AlreadyExecuted
-                        : ValidationResult.OrphanBlock;
+                        : ValidationResult.LowerHeight;
                 }
                 
                 _logger?.Error("Incomplete validation scheme.");
-                return ValidationResult.DontKnowReason;
+                return ValidationResult.FailedToValidate;
             }
             catch (Exception e)
             {
                 _logger?.Error(e, "Error while validating blocks.");
-                return ValidationResult.FailedToCheckChainContextInvalidation;
+                return ValidationResult.FailedToValidate;
             }
         }
     }

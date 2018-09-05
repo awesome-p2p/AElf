@@ -349,7 +349,11 @@ namespace AElf.Node.AElfChain
 
                 if (suggestion != SyncSuggestion.Apply)
                 {
-                    var result = await CheckRollback(block, suggestion);
+                    var result = await UpdateSuggestion(block, suggestion);
+                    if (result != SyncSuggestion.Apply)
+                    {
+                        return new BlockExecutionResult(ExecutionResult.Failed, result);
+                    }
                 }
 
                 var executed = await _blockExecutor.ExecuteBlock(block);
@@ -365,23 +369,23 @@ namespace AElf.Node.AElfChain
             }
         }
         
-        public async Task<SyncSuggestion> CheckRollback(IBlock block, SyncSuggestion suggestion)
+        public async Task<SyncSuggestion> UpdateSuggestion(IBlock block, SyncSuggestion suggestion)
         {
-            var blockchain = _chainService.GetBlockChain(ByteArrayHelpers.FromHexString(NodeConfig.Instance.ChainId));
-            var localCorrespondingBlock = await blockchain.GetBlockByHeightAsync(block.Header.Index);
             switch (suggestion)
             {
-                case ValidationResult.OrphanBlock when block.Header.Time.ToDateTime() >= localCorrespondingBlock.Header.Time.ToDateTime():
-                    return ValidationResult.OrphanBlock;
-                case ValidationResult.OrphanBlock:
-                    _logger?.Trace("Ready to rollback");
+                case SyncSuggestion.Abandon:
+                    break;
+                case SyncSuggestion.Checkout:
+                    _logger?.Trace("Ready to checkout");
                     var txs = await _blockChain.RollbackToHeight(block.Header.Index - 1);
                     await _txPoolService.RollBack(txs);
                     await _stateDictator.RollbackToPreviousBlock();
-                    return SyncSuggestion.Apply;
+                    suggestion = SyncSuggestion.Apply;
+                    break;
+                case SyncSuggestion.Store:
+                    suggestion = SyncSuggestion.Apply;
+                    break;
             }
-            
-            _logger?.Trace("Invalid block received from network: " + suggestion);
             return suggestion;
         }
 

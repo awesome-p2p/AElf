@@ -46,10 +46,6 @@ namespace AElf.ChainController
             //Formulate an Executive and execute a transaction of checking time slot of this block producer
             var executive = await _smartContractService.GetExecutiveAsync(contractAccountHash, context.ChainId);
             var tx = GetTxToVerifyBlockProducer(contractAccountHash, keyPair, recipientKeyPair.GetAddress().ToHex(), timestampOfBlock);
-            if (tx == null)
-            {
-                return ValidationResult.FailedToCheckConsensusInvalidation;
-            }
             var tc = new TransactionContext
             {
                 Transaction = tx
@@ -57,15 +53,9 @@ namespace AElf.ChainController
             await executive.SetTransactionContext(tc).Apply();
             var trace = tc.Trace;
             
-            //If failed to execute the transaction of checking time slot
-            if (!trace.StdErr.IsNullOrEmpty())
-            {
-                return ValidationResult.FailedToCheckConsensusInvalidation;
-            }
-
             return BoolValue.Parser.ParseFrom(trace.RetVal.ToByteArray()).Value
                 ? ValidationResult.Success
-                : ValidationResult.InvalidTimeslot;
+                : ValidationResult.InvalidTimeSlot;
         }
 
         private Transaction GetTxToVerifyBlockProducer(Hash contractAccountHash, ECKeyPair keyPair, string recepientAddress, Timestamp timestamp)

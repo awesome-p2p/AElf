@@ -21,12 +21,7 @@ namespace AElf.ChainController
             get => _blockCollection.PendingForkBlocks;
             set => _blockCollection.PendingForkBlocks = value;
         }
-
-        public void AddBlock(IBlock block)
-        {
-            _blockCollection.AddBlock(block);
-        }
-
+        
         public void AddPendingBlock(PendingBlock pendingBlock)
         {
             _blockCollection.AddPendingBlock(pendingBlock);
