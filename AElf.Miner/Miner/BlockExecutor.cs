@@ -51,7 +51,6 @@ namespace AElf.Miner.Miner
         public async Task<ExecutionResult> ExecuteBlock(IBlock block)
         {
             var readyTxs = new List<Transaction>();
-
             try
             {
                 if (Cts == null || Cts.IsCancellationRequested)
@@ -78,52 +77,13 @@ namespace AElf.Miner.Miner
                     {
                         if (!_txPoolService.TryGetTx(id, out var tx))
                         {
-                            _logger?.Trace($"ExecuteBlock - Transaction not in pool {id.ToHex()}.");
-                            await Rollback(readyTxs);
+                            throw new Exception($"Cannot find transaction {id}");
                             return ExecutionResult.Failed;
                         }
 
                         readyTxs.Add(tx);
-
-                        // remove from tx collection
-                        _txPoolService.RemoveAsync(tx.GetHash());
-                        var from = tx.From;
-                        if (!map.ContainsKey(@from))
-                            map[@from] = new HashSet<ulong>();
-
-                        map[@from].Add(tx.IncrementId);
                     }
 
-                // promote txs from these address
-                //await _txPoolService.PromoteAsync(map.Keys.ToList());
-                foreach (var fromTxs in map)
-                {
-                    var addr = fromTxs.Key;
-                    var ids = fromTxs.Value; 
-
-                    // return false if not continuousa
-                    if (ids.Count != 1)
-                    {
-                        foreach (var id in ids)
-                        {
-                            if (!ids.Contains(id - 1) && !ids.Contains(id + 1))
-                            {
-                                _logger?.Trace($"ExecuteBlock - Non continuous ids, id {id}.");
-                                await Rollback(readyTxs);
-                                return ExecutionResult.Failed;
-                            }
-                        }
-                    }
-
-                    // get ready txs from pool
-                    var ready = await _txPoolService.GetReadyTxsAsync(addr, ids.Min(), (ulong) ids.Count);
-
-                    if (ready) continue;
-                    _logger?.Trace($"ExecuteBlock - No transactions are ready.");
-                    await Rollback(readyTxs);
-                    return ExecutionResult.Failed;
-                }
-                
                 var traces = readyTxs.Count == 0
                     ? new List<TransactionTrace>()
                     : await _executingService.ExecuteAsync(readyTxs, block.Header.ChainId, Cts.Token);
@@ -205,6 +165,7 @@ namespace AElf.Miner.Miner
             {
                 addrs.Add(t.From);
                 await _transactionManager.AddTransactionAsync(t);
+                _txPoolService.RemoveAsync(t.GetHash());
             }
             
             txResults.ForEach(async r =>

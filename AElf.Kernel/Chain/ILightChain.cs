@@ -14,5 +14,6 @@ namespace AElf.Kernel
         Task<Hash> GetCurrentBlockHashAsync();
         Task<IBlockHeader> GetHeaderByHashAsync(Hash blockHash);
         Task<IBlockHeader> GetHeaderByHeightAsync(ulong height);
+        Task<Hash> GetCanonicalHashAsync(ulong height);
     }
 }
