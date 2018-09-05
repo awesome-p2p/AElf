@@ -5,7 +5,7 @@ namespace AElf.Kernel.Tests
 {
     public class HashTests
     {
-        private static IEnumerable<object[]> RandomHashes
+        public static IEnumerable<object[]> RandomHashes
         {
             get
             {

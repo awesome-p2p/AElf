@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using AElf.Kernel;
-using AElf.Kernel.Types.Block;
 
+// ReSharper disable once CheckNamespace
 namespace AElf.Kernel
 {
     public interface ILightChain

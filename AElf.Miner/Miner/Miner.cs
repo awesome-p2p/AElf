@@ -15,7 +15,6 @@ using AElf.SmartContract;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using AElf.Kernel.Consensus;
-using AElf.Kernel.Types.Block;
 using AElf.Miner.Miner;
 using Easy.MessageHub;
 using NLog;

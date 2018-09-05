@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
-using AElf.Kernel;
 using AElf.Kernel.Managers;
 using AElf.Kernel.Storages;
-using AElf.Kernel.Types.Block;
-using Akka.Dispatch;
-using Akka.Util;
 
+// ReSharper disable once CheckNamespace
 namespace AElf.Kernel
 {
     public class LightChain : ILightChain

@@ -30,8 +30,9 @@ namespace AElf.Kernel
         {
             return GetHashBytes().Take(ECKeyPair.AddressLength).ToArray();
         }
-        
-        public bool CheckPrefix(ByteString prefix ){
+
+        public bool CheckPrefix(ByteString prefix)
+        {
             if (prefix.Length > Value.Length)
             {
                 return false;

@@ -62,7 +62,7 @@ namespace AElf.Miner.Tests
             _functionMetadataService = functionMetadataService;
             _executingService = executingService;
             _dataStore = dataStore;
-            _stateDictator = new StateDictator(_hashManager, transactionManager, _dataStore, _logger);
+            _stateDictator = new StateDictator(_hashManager, _dataStore, _logger);
             _smartContractManager = smartContractManager;
             _accountContextService = accountContextService;
             _hashManager = hashManager;
@@ -284,7 +284,7 @@ namespace AElf.Miner.Tests
 
             synchronizer.Start();
             var res = await synchronizer.ExecuteBlock(block);
-            Assert.False(res);
+            Assert.False(res == ExecutionResult.Success);
 
             Assert.Equal((ulong)0, await poolService.GetWaitingSizeAsync());
             Assert.Equal((ulong)2, await poolService.GetExecutableSizeAsync());
