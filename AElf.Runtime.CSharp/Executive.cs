@@ -221,23 +221,12 @@ namespace AElf.Runtime.CSharp
                     }
 
                     _currentTransactionContext.Trace.ValueChanges.AddRange(stateValueChanges);
-                    
-//                    if (autoCommit)
-//                    {
-//                        var changeDict = await _currentTransactionContext.Trace.CommitChangesAsync(_stateDictator);
-//                        await _stateDictator.ApplyCachedDataAction(changeDict);
-//                        _currentSmartContractContext.DataProvider.StateCache.Clear(); //clear state cache for special tx that called with "autoCommit = true"
-//                    }
                 }
             }
             catch (Exception ex)
             {
                 _currentTransactionContext.Trace.ExecutionStatus = ExecutionStatus.SystemError;
                 _currentTransactionContext.Trace.StdErr += ex + "\n";
-            }
-            finally
-            {
-                _currentSmartContractContext.DataProvider.ClearCache();
             }
             
             var e = _currentTransactionContext.Trace.EndTime = DateTime.UtcNow;

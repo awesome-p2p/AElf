@@ -345,46 +345,44 @@ namespace AElf.Node.AElfChain
             {
                 var chainId = ByteArrayHelpers.FromHexString(NodeConfig.Instance.ChainId);
                 var context = await _chainContextService.GetChainContextAsync(chainId);
-                var error = await _blockVaildationService.ValidateBlockAsync(block, context, _nodeKeyPair);
+                var suggestion = await _blockVaildationService.ValidateBlockAsync(block, context, _nodeKeyPair);
 
-                if (error != ValidationError.Success)
+                if (suggestion != SyncSuggestion.Apply)
                 {
-                    var blockchain = _chainService.GetBlockChain(ByteArrayHelpers.FromHexString(NodeConfig.Instance.ChainId));
-                    var localCorrespondingBlock = await blockchain.GetBlockByHeightAsync(block.Header.Index);
-                    if (error == ValidationError.OrphanBlock)
-                    {
-                        //TODO: limit the count of blocks to rollback
-                        if (block.Header.Time.ToDateTime() < localCorrespondingBlock.Header.Time.ToDateTime())
-                        {
-                            _logger?.Trace("Ready to rollback");
-                            var txs = await _blockChain.RollbackToHeight(block.Header.Index - 1);
-                            await _txPoolService.RollBack(txs);
-                            await _stateDictator.RollbackToPreviousBlock();
-                            error = ValidationError.Success;
-                        }
-                        else
-                        {
-                            return new BlockExecutionResult(false, ValidationError.OrphanBlock);
-                        }
-                    }
-                    else
-                    {
-                        _logger?.Trace("Invalid block received from network: " + error);
-                        return new BlockExecutionResult(false, error);
-                    }
+                    var result = await CheckRollback(block, suggestion);
                 }
 
                 var executed = await _blockExecutor.ExecuteBlock(block);
 
                 await _consensus.Update();
 
-                return new BlockExecutionResult(executed, error);
+                return new BlockExecutionResult(executed, suggestion);
             }
             catch (Exception e)
             {
                 _logger?.Error(e, "Block synchronzing failed");
                 return new BlockExecutionResult(e);
             }
+        }
+        
+        public async Task<ValidationResult> CheckRollback(IBlock block, ValidationResult result)
+        {
+            var blockchain = _chainService.GetBlockChain(ByteArrayHelpers.FromHexString(NodeConfig.Instance.ChainId));
+            var localCorrespondingBlock = await blockchain.GetBlockByHeightAsync(block.Header.Index);
+            switch (result)
+            {
+                case ValidationResult.OrphanBlock when block.Header.Time.ToDateTime() >= localCorrespondingBlock.Header.Time.ToDateTime():
+                    return ValidationResult.OrphanBlock;
+                case ValidationResult.OrphanBlock:
+                    _logger?.Trace("Ready to rollback");
+                    var txs = await _blockChain.RollbackToHeight(block.Header.Index - 1);
+                    await _txPoolService.RollBack(txs);
+                    await _stateDictator.RollbackToPreviousBlock();
+                    return ValidationResult.Success;
+            }
+            
+            _logger?.Trace("Invalid block received from network: " + result);
+            return result;
         }
 
         #endregion Legacy Methods

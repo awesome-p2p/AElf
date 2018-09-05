@@ -54,7 +54,6 @@ namespace AElf.Kernel.Tests
 //            await _chainManager.AddChainAsync(chainId, Hash.Generate());
 //            Assert.NotNull(_chainManager.GetChainAsync(chainId).Result);
 //        }
-        
 
         [Fact]
         public async Task AppendBlockTest()

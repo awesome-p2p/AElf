@@ -136,7 +136,7 @@ namespace AElf.Kernel.Node
             }
         }
 
-        private async Task<IBlock> Mine(bool initial = false)
+        private async Task<IBlock> Mine()
         {
             var res = Interlocked.CompareExchange(ref _flag, 1, 0);
             if (res == 1)
@@ -148,7 +148,7 @@ namespace AElf.Kernel.Node
                 _stateDictator.BlockProducerAccountAddress = _nodeKeyPair.Address;
                 _stateDictator.BlockHeight = await _blockchain.GetCurrentBlockHeightAsync();
 
-                var block = await _miner.Mine(Globals.AElfDPoSMiningInterval * 9 / 10, initial);
+                var block = await _miner.Mine(Globals.AElfDPoSMiningInterval * 9 / 10);
 
                 var b = Interlocked.CompareExchange(ref _flag, 0, 1);
 
@@ -255,7 +255,7 @@ namespace AElf.Kernel.Node
             var txToInitializeAElfDPoS = GenerateTransaction("InitializeAElfDPoS", parameters);
             await BroadcastTransaction(txToInitializeAElfDPoS);
 
-            var block = await Mine(true);
+            var block = await Mine();
             await _p2p.BroadcastBlock(block);
         }
 

@@ -11,26 +11,27 @@ using Google.Protobuf.WellKnownTypes;
 using NLog;
 using ServiceStack;
 
+// ReSharper disable once CheckNamespace
 namespace AElf.ChainController
 {
-    [LoggerName(nameof(ConsensusBlockValidationFilter))]
-    public class ConsensusBlockValidationFilter: IBlockValidationFilter
+    [LoggerName(nameof(ConsensusValidationFilter))]
+    public class ConsensusValidationFilter: IValidationFilter
     {
         private readonly ISmartContractService _smartContractService;
         private readonly ILogger _logger;
 
-        public ConsensusBlockValidationFilter(ISmartContractService smartContractService, ILogger logger)
+        public ConsensusValidationFilter(ISmartContractService smartContractService, ILogger logger)
         {
             _smartContractService = smartContractService;
             _logger = logger;
         }
 
-        public async Task<ValidationError> ValidateBlockAsync(IBlock block, IChainContext context, ECKeyPair keyPair)
+        public async Task<ValidationResult> ValidateBlockAsync(IBlock block, IChainContext context, ECKeyPair keyPair)
         {
             //If the height of chain is 1, no need to check consensus validation
             if (block.Header.Index < 2)
             {
-                return ValidationError.Success;
+                return ValidationResult.Success;
             }
             
             //Get block producer's address from block header
@@ -47,7 +48,7 @@ namespace AElf.ChainController
             var tx = GetTxToVerifyBlockProducer(contractAccountHash, keyPair, recipientKeyPair.GetAddress().ToHex(), timestampOfBlock);
             if (tx == null)
             {
-                return ValidationError.FailedToCheckConsensusInvalidation;
+                return ValidationResult.FailedToCheckConsensusInvalidation;
             }
             var tc = new TransactionContext
             {
@@ -59,12 +60,12 @@ namespace AElf.ChainController
             //If failed to execute the transaction of checking time slot
             if (!trace.StdErr.IsNullOrEmpty())
             {
-                return ValidationError.FailedToCheckConsensusInvalidation;
+                return ValidationResult.FailedToCheckConsensusInvalidation;
             }
 
             return BoolValue.Parser.ParseFrom(trace.RetVal.ToByteArray()).Value
-                ? ValidationError.Success
-                : ValidationError.InvalidTimeslot;
+                ? ValidationResult.Success
+                : ValidationResult.InvalidTimeslot;
         }
 
         private Transaction GetTxToVerifyBlockProducer(Hash contractAccountHash, ECKeyPair keyPair, string recepientAddress, Timestamp timestamp)

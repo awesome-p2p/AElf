@@ -238,7 +238,7 @@ namespace AElf.Node.Protocol
                 }
                 catch (Exception e)
                 {
-                    _logger?.Trace("Error while dequeuing " + job?.Block.GetHash().ToHex());
+                    _logger?.Trace(e, "Error while dequeuing " + job?.Block.GetHash().ToHex());
                     continue;
                 }
                 
@@ -434,15 +434,15 @@ namespace AElf.Node.Protocol
             var toRemove = new List<PendingBlock>();
             var executed = new List<PendingBlock>();
 
-            var blcks = pendingBlocks.ToList();
-            foreach (var pendingBlock in blcks)
+            var blocks = pendingBlocks.ToList();
+            foreach (var pendingBlock in blocks)
             {
                 var block = pendingBlock.Block;
 
                 var res = await _mainChainNode.ExecuteAndAddBlock(block);
-                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.Executed}, {res.ValidationError} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
+                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.Executed}, {res.ValidationResult} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
 
-                if (res.ValidationError == ValidationError.Success && res.Executed)
+                if (res.ValidationResult == ValidationResult.Success && res.Executed)
                 {
                     // The block was executed and validation was a success: remove the pending block.
                     toRemove.Add(pendingBlock);
@@ -457,7 +457,7 @@ namespace AElf.Node.Protocol
                 else
                 {
                     // The block wasn't executed or validation failed
-                    if (res.ValidationError == ValidationError.AlreadyExecuted || res.ValidationError == ValidationError.OrphanBlock)
+                    if (res.ValidationResult == ValidationResult.AlreadyExecuted || res.ValidationResult == ValidationResult.OrphanBlock)
                     {
                         // The block is an earlier block and one with the same
                         // height as already been executed so it can safely be
@@ -469,7 +469,7 @@ namespace AElf.Node.Protocol
                             Interlocked.Increment(ref CurrentExecHeight);
                         }
                     }
-                    else if (res.ValidationError == ValidationError.Pending)
+                    else if (res.ValidationResult == ValidationResult.Pending)
                     {
                         // The current blocks index is higher than the current height so we're missing
                         if (!ShouldDoInitialSync && (int) block.Header.Index > CurrentExecHeight)

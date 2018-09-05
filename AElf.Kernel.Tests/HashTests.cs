@@ -5,14 +5,29 @@ namespace AElf.Kernel.Tests
 {
     public class HashTests
     {
-        [Fact]
-        public void EqualTest()
+        private static IEnumerable<object[]> RandomHashes
         {
-            var hash1 = new Hash(new byte[] {10, 14, 1, 15});
-            var hash2 = new Hash(new byte[] {10, 14, 1, 15});
-            var hash3 = new Hash(new byte[] {15, 1, 14, 10});
-            Assert.True(hash1 == hash2);
-            Assert.False(hash1 == hash3);
+            get
+            {
+                yield return new object[] {Hash.Generate(), Hash.Generate()};
+                yield return new object[] {Hash.Generate(), Hash.Generate()};
+                yield return new object[] {Hash.Generate(), Hash.Generate()};
+                yield return new object[] {Hash.Generate(), Hash.Generate()};
+            }
+        }
+
+        [Theory]
+        [InlineData(new byte[] {10, 14, 1, 15}, new byte[] {10, 14, 1, 15})]
+        public void EqualTest(Hash hash1, Hash hash2)
+        {
+            Assert.Equal(hash1, hash2);
+        }
+
+        [Theory]
+        [InlineData(new byte[] {10, 14, 1, 15}, new byte[] {15, 1, 14, 10})]
+        public void NotEqualTest(Hash hash1, Hash hash2)
+        {
+            Assert.NotEqual(hash1, hash2);
         }
 
         [Fact]
@@ -37,12 +52,10 @@ namespace AElf.Kernel.Tests
             Assert.Equal("test", test);
         }
 
-        [Fact]
-        public void RandomHashTest()
+        [Theory]
+        [MemberData(nameof(RandomHashes))]
+        public void RandomHashTest(Hash hash1, Hash hash2)
         {
-            var hash1 = Hash.Generate();
-            var hash2 = Hash.Generate();
-            
             Assert.False(hash1 == hash2);
         }
     }

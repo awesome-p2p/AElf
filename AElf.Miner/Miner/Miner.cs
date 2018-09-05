@@ -42,7 +42,6 @@ namespace AElf.Miner.Miner
         private MinerLock Lock { get; } = new MinerLock();
         private readonly ILogger _logger;
         
-        
         /// <summary>
         /// Signals to a CancellationToken that mining should be canceled
         /// </summary>
@@ -93,7 +92,7 @@ namespace AElf.Miner.Miner
             }
         }
 
-        public async Task<IBlock> Mine(int timeoutMilliseconds, bool initial = false)
+        public async Task<IBlock> Mine(int timeoutMilliseconds)
         {
             _stateDictator.ChainId = Config.ChainId;
             _stateDictator.BlockProducerAccountAddress = _keyPair.GetAddress();

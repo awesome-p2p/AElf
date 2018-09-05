@@ -26,7 +26,7 @@ namespace AElf.Miner.Miner
         private readonly ITransactionResultManager _transactionResultManager;
         private readonly IStateDictator _stateDictator;
         private readonly IExecutingService _executingService;
-        private ILogger _logger;
+        private readonly ILogger _logger;
 
         public BlockExecutor(ITxPoolService txPoolService, IChainService chainService,
             IStateDictator stateDictator,
@@ -48,7 +48,7 @@ namespace AElf.Miner.Miner
         public CancellationTokenSource Cts { get; private set; }
 
         /// <inheritdoc/>
-        public async Task<bool> ExecuteBlock(IBlock block)
+        public async Task<ExecutionResult> ExecuteBlock(IBlock block)
         {
             var readyTxs = new List<Transaction>();
 
@@ -57,7 +57,7 @@ namespace AElf.Miner.Miner
                 if (Cts == null || Cts.IsCancellationRequested)
                 {
                     _logger?.Trace("ExecuteBlock - Execution cancelled.");
-                    return false;
+                    return ExecutionResult.Failed;
                 }
                 var map = new Dictionary<Hash, HashSet<ulong>>();
 
@@ -80,7 +80,7 @@ namespace AElf.Miner.Miner
                         {
                             _logger?.Trace($"ExecuteBlock - Transaction not in pool {id.ToHex()}.");
                             await Rollback(readyTxs);
-                            return false;
+                            return ExecutionResult.Failed;
                         }
 
                         readyTxs.Add(tx);
@@ -110,7 +110,7 @@ namespace AElf.Miner.Miner
                             {
                                 _logger?.Trace($"ExecuteBlock - Non continuous ids, id {id}.");
                                 await Rollback(readyTxs);
-                                return false;
+                                return ExecutionResult.Failed;
                             }
                         }
                     }
@@ -121,7 +121,7 @@ namespace AElf.Miner.Miner
                     if (ready) continue;
                     _logger?.Trace($"ExecuteBlock - No transactions are ready.");
                     await Rollback(readyTxs);
-                    return false;
+                    return ExecutionResult.Failed;
                 }
                 
                 var traces = readyTxs.Count == 0
@@ -167,7 +167,7 @@ namespace AElf.Miner.Miner
                 {
                     _logger?.Trace($"ExecuteBlock - Could not get world state.");
                     await Rollback(readyTxs);
-                    return false;
+                    return ExecutionResult.Failed;
                 }
 
                 if (await ws.GetWorldStateMerkleTreeRootAsync() != block?.Header.MerkleTreeRootOfWorldState)
@@ -177,7 +177,7 @@ namespace AElf.Miner.Miner
                     _logger?.Trace($"Merkle tree root hash of received block: {block?.Header.MerkleTreeRootOfWorldState.ToHex()}");
 
                     await Rollback(readyTxs);
-                    return false;
+                    return ExecutionResult.Failed;
                 }
 
                 var blockchain = _chainService.GetBlockChain(block.Header.ChainId);
@@ -187,10 +187,10 @@ namespace AElf.Miner.Miner
             {
                 _logger?.Trace(e, $"ExecuteBlock - Execution failed.");
                 await Rollback(readyTxs);
-                return false;
+                return ExecutionResult.Failed;
             }
 
-            return true;
+            return ExecutionResult.Success;
         }
 
         /// <summary>

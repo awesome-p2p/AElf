@@ -9,11 +9,11 @@ namespace AElf.Miner.Miner
         void Start(ECKeyPair nodeKeyPair);
 
         Hash Coinbase { get; }
-        
+
         /// <summary>
         /// mining functionality
         /// </summary>
         /// <returns></returns>
-        Task<IBlock> Mine(int timeoutMilliseconds, bool initial);
+        Task<IBlock> Mine(int timeoutMilliseconds);
     }
 }

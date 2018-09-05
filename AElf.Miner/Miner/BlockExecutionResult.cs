@@ -5,15 +5,15 @@ namespace AElf.Miner.Miner
 {
     public class BlockExecutionResult
     {
-        public ValidationError ValidationError { get; private set; }
-        public bool Executed { get; private set; } //todo make this more explicit (ExecutionError)
+        public ValidationResult ValidationResult { get; }
+        public ExecutionResult Executed { get; }
 
         public Exception ExecutionException { get; set; }
 
-        public BlockExecutionResult(bool executed, ValidationError validationError)
+        public BlockExecutionResult(ExecutionResult executionResult, ValidationResult validationResult)
         {
-            Executed = executed;
-            ValidationError = validationError;
+            Executed = executionResult;
+            ValidationResult = validationResult;
         }
 
         public BlockExecutionResult(Exception e)

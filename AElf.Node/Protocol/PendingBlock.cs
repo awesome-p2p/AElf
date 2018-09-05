@@ -20,7 +20,7 @@ namespace AElf.Node.Protocol
 
         public bool IsSynced => MissingTxs.Count == 0;
 
-        public PendingBlock(byte[] blockHash, Block block, List<Hash> missing)
+        public PendingBlock(byte[] blockHash, Block block, IReadOnlyCollection<Hash> missing)
         {
             Block = block;
             BlockHash = blockHash;
