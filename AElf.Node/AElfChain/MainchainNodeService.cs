@@ -365,11 +365,11 @@ namespace AElf.Node.AElfChain
             }
         }
         
-        public async Task<ValidationResult> CheckRollback(IBlock block, ValidationResult result)
+        public async Task<SyncSuggestion> CheckRollback(IBlock block, SyncSuggestion suggestion)
         {
             var blockchain = _chainService.GetBlockChain(ByteArrayHelpers.FromHexString(NodeConfig.Instance.ChainId));
             var localCorrespondingBlock = await blockchain.GetBlockByHeightAsync(block.Header.Index);
-            switch (result)
+            switch (suggestion)
             {
                 case ValidationResult.OrphanBlock when block.Header.Time.ToDateTime() >= localCorrespondingBlock.Header.Time.ToDateTime():
                     return ValidationResult.OrphanBlock;
@@ -378,11 +378,11 @@ namespace AElf.Node.AElfChain
                     var txs = await _blockChain.RollbackToHeight(block.Header.Index - 1);
                     await _txPoolService.RollBack(txs);
                     await _stateDictator.RollbackToPreviousBlock();
-                    return ValidationResult.Success;
+                    return SyncSuggestion.Apply;
             }
             
-            _logger?.Trace("Invalid block received from network: " + result);
-            return result;
+            _logger?.Trace("Invalid block received from network: " + suggestion);
+            return suggestion;
         }
 
         #endregion Legacy Methods

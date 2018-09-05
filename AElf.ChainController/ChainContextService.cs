@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using AElf.ChainController;
 using AElf.Kernel;
 
@@ -6,10 +7,40 @@ namespace AElf.ChainController
 {
     public class ChainContextService : IChainContextService
     {
-        private IChainService _chainService;
+        private readonly IChainService _chainService;
+        private readonly IBlockCollection _blockCollection;
+
+        public List<PendingBlock> PendingBlocks
+        {
+            get => _blockCollection.PendingBlocks;
+            set => _blockCollection.PendingBlocks = value;
+        }
+
+        public List<PendingBlock> PendingForkBlocks
+        {
+            get => _blockCollection.PendingForkBlocks;
+            set => _blockCollection.PendingForkBlocks = value;
+        }
+
+        public void AddBlock(IBlock block)
+        {
+            _blockCollection.AddBlock(block);
+        }
+
+        public void AddPendingBlock(PendingBlock pendingBlock)
+        {
+            _blockCollection.AddPendingBlock(pendingBlock);
+        }
+
+        public void RemovePendingBlock(PendingBlock pendingBlock)
+        {
+            _blockCollection.RemovePendingBlock(pendingBlock);
+        }
+
         public ChainContextService(IChainService chainService)
         {
             _chainService = chainService;
+            _blockCollection = new BlockCollection();
         }
 
         public async Task<IChainContext> GetChainContextAsync(Hash chainId)

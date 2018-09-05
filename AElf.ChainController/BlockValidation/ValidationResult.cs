@@ -10,7 +10,7 @@ namespace AElf.ChainController
         IncorrectPreviousBlockHash,
 
         // Should store: < 1000
-        LowerHeight,
+        LowerHeight = 1001,
         HeigherHeight,
         /*
         OrphanBlock = 2,

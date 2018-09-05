@@ -5,7 +5,7 @@ using System.Collections.Generic;
 // ReSharper disable once CheckNamespace
 namespace AElf.Kernel
 {
-    public class BackupChain
+    public class BranchedChain
     {
         public ulong StartHeight { get; set; }
         public ulong EndHeight { get; set; }

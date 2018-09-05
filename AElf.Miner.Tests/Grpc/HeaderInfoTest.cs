@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AElf.ChainController;
 using AElf.Kernel;
+using AElf.Kernel.Types.Block;
 using AElf.Miner.Rpc;
 using AElf.Miner.Rpc.Server;
 using Grpc.Core;

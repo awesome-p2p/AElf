@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AElf.Kernel;
 using AElf.Kernel.Managers;
 using AElf.Kernel.Storages;
+using AElf.Kernel.Types.Block;
 using Akka.Dispatch;
 using Akka.Util;
 

@@ -13,14 +13,10 @@ using AElf.Common.Extensions;
 using AElf.Kernel;
 using AElf.Kernel.Node.Protocol.Exceptions;
 using AElf.Network;
-using AElf.Network.Connection;
-using AElf.Network.Data;
 using AElf.Network.Peers;
 using AElf.Node.AElfChain;
 using AElf.Node.Protocol.Events;
-using Google.Protobuf;
 using NLog;
-using ServiceStack;
 
 [assembly: InternalsVisibleTo("AElf.Kernel.Tests")]
 
@@ -35,6 +31,9 @@ namespace AElf.Node.Protocol
     /// and requests are sent out to retrieve missing transactions. These two operation are
     /// possibly performed at the same time, even though the Initial sync will at one point
     /// stop because we'll be receiving the new blocks through the network.
+    ///
+    /// For state consistency, we use _chainContextService.PendingBlocks to store all the
+    /// blocks with their indexes higher than local latest block height.
     /// </summary>
     public class BlockSynchronizer : IBlockSynchronizer
     {
@@ -42,37 +41,35 @@ namespace AElf.Node.Protocol
 
         private readonly INetworkManager _networkManager;
         private readonly ILogger _logger;
+        private readonly IChainContextService _chainContextService;
 
-        /// <summary>
-        /// The list of blocks that are currently being synched.
-        /// </summary>
-        public List<PendingBlock> PendingBlocks { get; }
+        public List<PendingBlock> PendingBlocks => _chainContextService.PendingBlocks;
         
         public bool ShouldDoInitialSync { get; private set; } = false;
         public bool IsInitialSyncInProgress { get; private set; } = false;
 
         public int CurrentExecHeight = 1;
 
-        public int SyncTargetHeight = 0;
+        public int SyncTargetHeight;
         private int MaxOngoingBlockRequests = 10;
         private readonly List<int> _currentBlockRequests;
 
         public int MaxOngoingTxRequests = 10;
         
-        private readonly object currentBlockRequestLock = new object();
+        private readonly object _currentBlockRequestLock = new object();
 
         private MainchainNodeService _mainChainNode;
         private readonly ITxPoolService _poolService;
 
-        private BlockingCollection<Job> _jobQueue;
+        private readonly BlockingCollection<Job> _jobQueue;
 
-        public BlockSynchronizer(INetworkManager networkManager, ITxPoolService poolService)
+        public BlockSynchronizer(INetworkManager networkManager, ITxPoolService poolService, IChainContextService chainContextService)
         {
-            PendingBlocks = new List<PendingBlock>();
             _jobQueue = new BlockingCollection<Job>();
             _currentBlockRequests = new List<int>();
 
             _poolService = poolService;
+            _chainContextService = chainContextService;
             _networkManager = networkManager;
 
             _logger = LogManager.GetLogger("BlockSync");
@@ -207,7 +204,7 @@ namespace AElf.Node.Protocol
         {
             _logger?.Trace($"Request state, current height {CurrentExecHeight}, sync target {SyncTargetHeight}, current requests {_currentBlockRequests.Count}");
             
-            lock (currentBlockRequestLock)
+            lock (_currentBlockRequestLock)
             {
                 for (int i = CurrentExecHeight; i < SyncTargetHeight && _currentBlockRequests.Count <= MaxOngoingBlockRequests; i++)
                 {
@@ -259,14 +256,13 @@ namespace AElf.Node.Protocol
                         // A block was queued for processing 
                         _logger?.Trace("Dequed block : " + job.Block.GetHash().ToHex());
 
-                        var succeed = AddBlockToSync(job.Block, job.Peer).Result;
+                        var addtionResult = AddBlockToSync(job.Block, job.Peer).Result;
 
-                        /* print candidates */
-                        if (!succeed)
+                        if (!addtionResult)
                             _logger?.Trace("Could not add block to sync");
                     }
 
-                    if (PendingBlocks == null || PendingBlocks.Count <= 0)
+                    if (PendingBlocks.Count <= 0)
                     {
                         _logger.Trace("No pending blocks");
                         continue;
@@ -274,7 +270,9 @@ namespace AElf.Node.Protocol
 
                     // Log sync info
                     var syncedCount = PendingBlocks.Count(pb => pb.IsSynced);
-                    _logger?.Trace($"There's {PendingBlocks.Count} pending blocks, with synced : {syncedCount}, non-synced : {PendingBlocks.Count - syncedCount}");
+                    _logger?.Trace(
+                        $"There's {PendingBlocks.Count} pending blocks, " +
+                        $"with synced : {syncedCount}, non-synced : {PendingBlocks.Count - syncedCount}");
 
                     // Get the blocks that are fully synched
                     var pendingBlocks = GetBlocksToExecute();
@@ -291,7 +289,8 @@ namespace AElf.Node.Protocol
                         {
                             // exec
                             var executedBlocks = TryExecuteBlocks(pendingBlocks).Result;
-                            _logger?.Trace("Executed the blocks with the following index(es) : " + GetPendingBlockListLog(executedBlocks));
+                            _logger?.Trace("Executed the blocks with the following index(es) : " +
+                                           GetPendingBlockListLog(executedBlocks));
                         }
                     }
 
@@ -383,7 +382,8 @@ namespace AElf.Node.Protocol
         /// network, it will be placed here to sync.
         /// </summary>
         /// <param name="block"></param>
-        private async Task<bool> AddBlockToSync(Block block, IPeer peer)
+        /// <param name="peer"></param>
+        private async Task<bool> AddBlockToSync(IBlock block, IPeer peer)
         {
             if (block?.Header == null || block.Body == null)
                 throw new InvalidBlockException("The block, blockheader or body is null");
@@ -415,14 +415,14 @@ namespace AElf.Node.Protocol
             // todo check that the returned txs are actually in the block
             var newPendingBlock = new PendingBlock(blockHash, block, missingTxs) { Peer = peer };
 
-            PendingBlocks.Add(newPendingBlock);
+            _chainContextService.AddPendingBlock(newPendingBlock);
 
             _logger?.Trace("Added block to sync : " + blockHash.ToHex());
 
             return true;
         }
 
-        private object objLock = new object();
+        private readonly object _objLock = new object();
 
         /// <summary>
         /// Tries to executes the specified blocks.
@@ -440,44 +440,47 @@ namespace AElf.Node.Protocol
                 var block = pendingBlock.Block;
 
                 var res = await _mainChainNode.ExecuteAndAddBlock(block);
-                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.Executed}, {res.ValidationResult} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
+                _logger?.Trace($"TryExecuteBlocks - Block execution result : {res.ExecutionResult}, {res.ValidationResult} : {block.GetHash().Value.ToByteArray().ToHex()} - Index {block.Header.Index}");
 
-                if (res.ValidationResult == ValidationResult.Success && res.Executed)
+                if (res.IsSuccess)
                 {
-                    // The block was executed and validation was a success: remove the pending block.
+                    // If success: remove current pending block.
                     toRemove.Add(pendingBlock);
                     executed.Add(pendingBlock);
                     Interlocked.Increment(ref CurrentExecHeight);
                     
-                    lock (currentBlockRequestLock)
+                    lock (_currentBlockRequestLock)
                     {
                         _currentBlockRequests.Remove((int)block.Header.Index);
                     }
                 }
                 else
                 {
-                    // The block wasn't executed or validation failed
-                    if (res.ValidationResult == ValidationResult.AlreadyExecuted || res.ValidationResult == ValidationResult.OrphanBlock)
+                    // Somehow failed
+                    
+                    if (res.ValidationResult == ValidationResult.AlreadyExecuted
+                        /* || res.ValidationResult == ValidationResult.OrphanBlock */)
                     {
                         // The block is an earlier block and one with the same
-                        // height as already been executed so it can safely be
-                        // remove from the pending blocks.
+                        // height as already been executed so it can be safely
+                        // remove from the pending blocks list.
                         toRemove.Add(pendingBlock);
 
-                        if (IsInitialSyncInProgress && (int)pendingBlock.Block.Header.Index == CurrentExecHeight)
+                        if (IsInitialSyncInProgress && (int) pendingBlock.Block.Header.Index == CurrentExecHeight)
                         {
                             Interlocked.Increment(ref CurrentExecHeight);
                         }
                     }
-                    else if (res.ValidationResult == ValidationResult.Pending)
+                    else if (res.ValidationResult == ValidationResult.HeigherHeight)
                     {
-                        // The current blocks index is higher than the current height so we're missing
-                        if (!ShouldDoInitialSync && (int) block.Header.Index > CurrentExecHeight)
-                        {
-                            //_networkManager.QueueRequest(GetRequestMessageForIndex(CurrentExecHeight), null);
-                            _networkManager.QueueBlockRequestByIndex(CurrentExecHeight);
-                            break;
-                        }
+                        // Current block's index is higher than local current height,
+                        // which means we may missing some blocks
+                        if (ShouldDoInitialSync || (int) block.Header.Index <= CurrentExecHeight)
+                            continue;
+                        
+                        //_networkManager.QueueRequest(GetRequestMessageForIndex(CurrentExecHeight), null);
+                        _networkManager.QueueBlockRequestByIndex(CurrentExecHeight);
+                        break;
                     }
                 }
             }
@@ -485,9 +488,9 @@ namespace AElf.Node.Protocol
             // remove the pending blocks
             foreach (var pdBlock in toRemove)
             {
-                lock (objLock)
+                lock (_objLock)
                 {
-                    PendingBlocks.Remove(pdBlock);
+                    _chainContextService.RemovePendingBlock(pdBlock);
                 }
             }
 

@@ -14,7 +14,7 @@ namespace AElf.ChainController
             builder.RegisterType<ContractTxPool>().As<IContractTxPool>().SingleInstance();
             builder.RegisterType<TxPoolService>().As<ITxPoolService>().SingleInstance();
             builder.RegisterType<ChainCreationService>().As<IChainCreationService>();
-            builder.RegisterType<ChainContextService>().As<IChainContextService>();
+            builder.RegisterType<ChainContextService>().As<IChainContextService>().SingleInstance();
             builder.RegisterType<TransactionResultService>().As<ITransactionResultService>();
             builder.RegisterType<AccountContextService>().As<IAccountContextService>().SingleInstance();
             builder.RegisterType<ChainService>().As<IChainService>();

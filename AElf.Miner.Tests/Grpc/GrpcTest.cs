@@ -8,6 +8,7 @@ using AElf.Common.ByteArrayHelpers;
 using AElf.Configuration.Config.GRPC;
 using AElf.Cryptography.Certificate;
 using AElf.Kernel;
+using AElf.Kernel.Types.Block;
 using AElf.Miner.Rpc;
 using AElf.Miner.Rpc.Client;
 using AElf.Miner.Rpc.Server;

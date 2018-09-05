@@ -6,13 +6,16 @@ namespace AElf.Miner.Miner
     public class BlockExecutionResult
     {
         public ValidationResult ValidationResult { get; }
-        public ExecutionResult Executed { get; }
+        public ExecutionResult ExecutionResult { get; }
+
+        public bool IsSuccess =>
+            ValidationResult == ValidationResult.Success && ExecutionResult == ExecutionResult.Success;
 
         public Exception ExecutionException { get; set; }
 
         public BlockExecutionResult(ExecutionResult executionResult, ValidationResult validationResult)
         {
-            Executed = executionResult;
+            ExecutionResult = executionResult;
             ValidationResult = validationResult;
         }
 

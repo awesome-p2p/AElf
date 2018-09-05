@@ -12,7 +12,7 @@ namespace AElf.Kernel
     {
         private readonly ITransactionManager _transactionManager;
 
-        private readonly List<BackupChain> _backupChains = new List<BackupChain>();
+        private readonly List<BranchedChain> _backupChains = new List<BranchedChain>();
         
         public BlockChain(Hash chainId, IChainManagerBasic chainManager, IBlockManagerBasic blockManager,
             ITransactionManager transactionManager, IDataStore dataStore) : base(
