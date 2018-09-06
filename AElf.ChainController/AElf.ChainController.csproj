@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AElf.Kernel.Consensus\AElf.Kernel.Consensus.csproj" />
+    <ProjectReference Include="..\AElf.Network\AElf.Network.csproj" />
     <ProjectReference Include="..\AElf.SmartContract\AElf.SmartContract.csproj" />
   </ItemGroup>
 </Project>

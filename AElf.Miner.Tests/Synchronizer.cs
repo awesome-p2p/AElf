@@ -109,28 +109,12 @@ namespace AElf.Miner.Tests
             }
         }
         
-        
-        public byte[] NewSmartContractZeroCode
-        {
-            get
-            {
-                return ContractCodes.TestContractZeroCode;
-            }
-        }
-        
-        
-        public byte[] ExampleContractCode
-        {
-            get
-            {
-                return ContractCodes.TestContractCode;
-            }
-        }
-        
+        public byte[] NewSmartContractZeroCode => ContractCodes.TestContractZeroCode;
+
+        public byte[] ExampleContractCode => ContractCodes.TestContractCode;
 
         private static int _incrementId;
         private IChainService _chainService;
-
         
         public ulong NewIncrementId()
         {

@@ -14,7 +14,7 @@ namespace AElf.Kernel
         public IBlock Block { get; }
         public IPeer Peer { get; set; }
 
-        public List<PendingTx> MissingTxs { get; private set; }
+        public List<PendingTx> MissingTxs { get; }
 
         public byte[] BlockHash { get; }
 
